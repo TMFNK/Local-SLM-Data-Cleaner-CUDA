@@ -1,0 +1,7 @@
+# fine-tuning stack (Lenovo / CUDA only). On Linux, pip's default torch wheel
+# includes CUDA. Qwen3 needs transformers>=4.51.
+torch>=2.3
+transformers>=4.51
+peft>=0.11
+trl>=0.18
+datasets>=2.19

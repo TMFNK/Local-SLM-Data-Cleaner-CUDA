@@ -1,0 +1,2 @@
+# runtime + tooling
+requests>=2.31        # talk to the llama.cpp OpenAI-compatible server
