@@ -1,7 +1,15 @@
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 data/*.jsonl
 adapters/
 fused/
 *.gguf
 .venv/
+venv/
+env/
+.DS_Store
+*~
+*.swp
+*.swo
