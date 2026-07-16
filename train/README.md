@@ -1,6 +1,8 @@
-# Training: Qwen3-0.6B (instruct) with CUDA (Transformers + PEFT + TRL)
+# Training with CUDA (Transformers + PEFT + TRL)
 
-Fine-tune locally on the Lenovo's GTX 1650, then export to GGUF for llama.cpp.
+Fine-tune locally on an NVIDIA GPU, then export to GGUF for llama.cpp. The Makefile
+sets `MODEL`, `ALIAS`, and `GGUF_QUANT` from `MODEL_PRESET` (default:
+`qwen3-0.6b`). Run `make list-models` for options.
 
 ## 0. Install
 
@@ -25,8 +27,10 @@ train on increasing slices and stop where eval flattens.
 ## 2. LoRA fine-tune
 
 ```bash
+make train
+# or manually:
 python3 train/train_lora.py \
-  --model Qwen/Qwen3-0.6B \
+  --model "$MODEL" \
   --data data \
   --iters 1000 \
   --batch-size 4 \
@@ -45,7 +49,7 @@ thinking template.
 
 ```bash
 make fuse   # python3 train/merge_export.py -> fused/ (plain HF checkpoint)
-make gguf   # convert_hf_to_gguf.py + llama-quantize -> qwen3-0.6b-cleaner-q8_0.gguf
+make gguf   # convert_hf_to_gguf.py + llama-quantize -> ${ALIAS}-<quant>.gguf
 ```
 
 ## 4. Serve + evaluate
@@ -53,4 +57,10 @@ make gguf   # convert_hf_to_gguf.py + llama-quantize -> qwen3-0.6b-cleaner-q8_0.
 ```bash
 make serve   # llama-server -ngl 99 (all layers on the GPU)
 make eval    # in a second terminal: score against data/test.jsonl
+```
+
+For manual eval, pass the same alias the server uses:
+
+```bash
+python3 eval/evaluate.py --data data/test.jsonl --live --model-name "${ALIAS}"
 ```

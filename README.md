@@ -351,7 +351,7 @@ make gguf
 
 `fuse` merges what it learned back into the model. `gguf` converts it into the format `llama.cpp` runs.
 
-In plain terms: after `fuse` you have a `fused/` folder holding a complete model with your training baked in. `make gguf` then does two conversions in a row. First it repacks that folder into a single `.gguf` file (large, roughly the size of the original download), then it compresses it into the file you will actually use, `qwen3-0.6b-cleaner-q8_0.gguf` (around 600 MB). The compression step is the **quantization** from the glossary: storing the model's numbers with less precision to halve the size, at a quality cost too small to matter here.
+In plain terms: after `fuse` you have a `fused/` folder holding a complete model with your training baked in. `make gguf` then does two conversions in a row. First it repacks that folder into a single `.gguf` file (large, roughly the size of the original download), then it compresses it into the file you will actually use, `<ALIAS>-<quant>.gguf` (for the default preset: `qwen3-0.6b-cleaner-q8_0.gguf`, around 600 MB). Run `make list-models` to see which preset is active. The compression step is the **quantization** from the glossary: storing the model's numbers with less precision to halve the size, at a quality cost too small to matter here.
 
 When both commands have finished you can see the files with `ls *.gguf`.
 
@@ -365,7 +365,9 @@ In your **first terminal**, serve your fine-tuned model. It keeps running:
 make serve
 ```
 
-This is the same kind of server as in Step 7, but now it loads your own file, the fine-tuned `qwen3-0.6b-cleaner-q8_0.gguf`, instead of downloading the stock model. Nothing is downloaded this time; it should print its "listening" line within seconds.
+This is the same kind of server as in Step 7, but now it loads your own
+fine-tuned GGUF (for the default preset: `qwen3-0.6b-cleaner-q8_0.gguf`) instead
+of downloading the stock model. Nothing is downloaded this time; it should print its "listening" line within seconds.
 
 In the **second terminal**, score it:
 
@@ -453,9 +455,47 @@ A good result is your fine-tuned model scoring well above the untrained baseline
 
 ### Model details
 
-We use **Qwen3-0.6B** (instruct), LoRA fine-tuned with Hugging Face Transformers + PEFT + TRL, exported to GGUF and served by [llama.cpp](https://github.com/ggml-org/llama.cpp) with CUDA acceleration. It runs in about 1 GB on a GPU with as little as 4 GB VRAM. The output is grammar-constrained to the record's JSON schema, so it is always valid JSON.
+The default preset is **Qwen3-0.6B** (instruct), LoRA fine-tuned with Hugging Face
+Transformers + PEFT + TRL, exported to GGUF and served by
+[llama.cpp](https://github.com/ggml-org/llama.cpp) with CUDA acceleration. It runs
+in about 1 GB on a GPU with as little as 4 GB VRAM. The output is
+grammar-constrained to the record's JSON schema, so it is always valid JSON.
 
-For the why behind all of this (tiny models, base vs instruct, LoRA, quantization, grammar-constrained decoding), see [docs/concepts.md](docs/concepts.md).
+#### Swapping models
+
+The pipeline supports other small models via `MODEL_PRESET`. Run `make clean`
+before switching so adapters and GGUF files from the previous model are not reused:
+
+```bash
+make list-models        # show available model presets
+make MODEL_PRESET=minicpm5-1b clean model data train fuse gguf serve eval
+```
+
+Or set it once for the session:
+
+```bash
+export MODEL_PRESET=minicpm5-1b
+make clean model data train fuse gguf serve eval
+```
+
+| Preset         | Base model   | Size | GGUF repo (baseline)                               | Quant    | ALIAS                  |
+| -------------- | ------------ | ---- | -------------------------------------------------- | -------- | ---------------------- |
+| `qwen3-0.6b`   | Qwen3-0.6B   | 0.6B | `Qwen/Qwen3-0.6B-GGUF`                             | `Q8_0`   | `qwen3-0.6b-cleaner`   |
+| `qwen3.5-0.8b` | Qwen3.5-0.8B | 0.8B | `unsloth/Qwen3.5-0.8B-GGUF` (community)           | `Q8_0`   | `qwen3.5-0.8b-cleaner` |
+| `minicpm5-1b`  | MiniCPM5-1B  | 1B   | `openbmb/MiniCPM5-1B-GGUF`                         | `Q4_K_M` | `minicpm5-1b-cleaner`  |
+
+Each preset sets `MODEL`, `GGUF_HF`, `GGUF_QUANT`, and `ALIAS` together. Override
+any individually, for example:
+
+```bash
+make model train fuse gguf MODEL_PRESET=minicpm5-1b GGUF_QUANT=Q8_0
+```
+
+Each architecture must be supported by Transformers/PEFT and llama.cpp. Qwen,
+Gemma, Phi, Llama-family, SmolLM, and MiniCPM are supported today.
+
+For the why behind all of this (tiny models, base vs instruct, LoRA, quantization,
+grammar-constrained decoding), see [docs/concepts.md](docs/concepts.md).
 
 ---
 
